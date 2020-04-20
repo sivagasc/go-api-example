@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"time"
 )
 
 // Pre-loaded users for demonstration purposes
@@ -18,6 +19,11 @@ var initialUsers = []User{
 		FirstName: "Robert",
 		LastName:  "Griesemer",
 	},
+	{
+		FirstName:     "Russ",
+		MiddleInitial: "C",
+		LastName:      "Cox",
+	},
 }
 
 // Users is a package level variable acting as an in-memory user database
@@ -31,9 +37,12 @@ func init() {
 
 // User represents a user of the system
 type User struct {
-	ID        int    `json:"id"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
+	ID            int        `json:"id"`
+	FirstName     string     `json:"first_name"`
+	MiddleInitial string     `json:"middle_initial,omitempty"`
+	LastName      string     `json:"last_name"`
+	CreatedAt     *time.Time `json:"-"`
+	UpdatedAt     *time.Time `json:"-"`
 }
 
 // UserCollection is a collection of user records
@@ -51,6 +60,8 @@ func (uc *UserCollection) AddUser(u User) (*User, error) {
 			return nil, fmt.Errorf("user with that name already exists")
 		}
 	}
+	u.CreatedAt = &[]time.Time{time.Now().UTC()}[0]
+	u.UpdatedAt = &[]time.Time{time.Now().UTC()}[0]
 	uc.Users = append(uc.Users, u)
 	return &u, nil
 }
@@ -87,6 +98,7 @@ func (uc *UserCollection) UpdateUser(u User) error {
 		if uc.Users[i].ID == u.ID {
 			// Currently no partial updates supported since all struct fields are required
 			uc.Users[i] = u
+			uc.Users[i].UpdatedAt = &[]time.Time{time.Now().UTC()}[0]
 			return nil
 		}
 	}

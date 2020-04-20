@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/kkeuning/go-api-example/pkg/auth"
 	"github.com/kkeuning/go-api-example/pkg/models"
 )
 
@@ -83,10 +85,23 @@ func listUsers(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	// Read API key from command line flag if provided.
+	var apiKey string
+	flag.StringVar(&apiKey, "apikey", "", "API key")
+	flag.Parse()
+
 	r := mux.NewRouter()
 	r.HandleFunc("/", hello)
 	r.HandleFunc("/api/v1/users", listUsers)
 	r.HandleFunc("/api/v1/users/{id}", getUser)
+
+	// The simple API key security is optional.
+	// If a key is provided, we will protect all routes containing "/api/".
+	if apiKey != "" {
+		akm := auth.APIKeyMiddleware{Path: "/api/"}
+		akm.InitializeKey(apiKey)
+		r.Use(akm.Middleware)
+	}
 
 	loggedRouter := handlers.LoggingHandler(os.Stdout, r)
 	log.Fatal(http.ListenAndServe(":8090", loggedRouter))

@@ -5,3 +5,7 @@ build:
 	@cd cmd/server; \
 	go build; 
 	@mv cmd/server/server bin/server;
+	@echo "building client"; 
+	@cd cmd/client; \
+	go build; 
+	@mv cmd/client/client bin/client;
