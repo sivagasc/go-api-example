@@ -10,31 +10,8 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/kkeuning/go-api-example/pkg/models"
 )
-
-var users = []user{
-	{
-		ID:        1,
-		FirstName: "Rob",
-		LastName:  "Pike",
-	},
-	{
-		ID:        2,
-		FirstName: "Ken",
-		LastName:  "Thompson",
-	},
-	{
-		ID:        3,
-		FirstName: "Robert",
-		LastName:  "Griesemer",
-	},
-}
-
-type user struct {
-	ID        int    `json:"id"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-}
 
 func hello(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "<h1>Hello, World!</h1>\n")
@@ -49,21 +26,20 @@ func getUser(w http.ResponseWriter, req *http.Request) {
 			fmt.Fprintf(w, "Expected id as an integer.")
 			return
 		}
-		for _, u := range users {
-			if u.ID == userID {
-				juser, err := json.Marshal(u)
-				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					fmt.Fprintf(w, "Something went wrong.")
-					return
-				}
-				w.WriteHeader(http.StatusOK)
-				w.Write(juser)
-				return
-			}
+		u, err := models.Users.GetUserByID(userID)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprintf(w, "User not found.")
+			return
 		}
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, "User not found.")
+		juser, err := json.Marshal(u)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Something went wrong.")
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write(juser)
 		return
 	}
 }
@@ -77,7 +53,7 @@ func listUsers(w http.ResponseWriter, req *http.Request) {
 			fmt.Fprintf(w, "Expected id as an integer.")
 			return
 		}
-		for _, u := range users {
+		for _, u := range models.Users.GetUsers() {
 			if u.ID == userID {
 				juser, err := json.Marshal(u)
 				if err != nil {
@@ -95,7 +71,7 @@ func listUsers(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	// No id specified, list all users.
-	jusers, err := json.Marshal(users)
+	jusers, err := json.Marshal(models.Users.GetUsers())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Something went wrong.")
