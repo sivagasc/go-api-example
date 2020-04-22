@@ -1,3 +1,21 @@
+// Package classification User Operations API
+//
+// the purpose of this application is to provide an application
+// that is using plain go code to define an API
+//
+// Documentation for User Operations API
+//
+// Schemas: http
+// BasePath: /v1
+// Version: 1.0.0
+//
+// Consumes:
+// - application/json
+//
+// Produces:
+// -application/json
+// swagger:meta
+
 package controllers
 
 import (

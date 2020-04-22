@@ -1,106 +1,135 @@
 package models
 
 import (
+	"context"
 	"fmt"
+	"log"
+	"os"
+	"reflect"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// Pre-loaded users for demonstration purposes
-var initialUsers = []User{
-	{
-		FirstName: "Rob",
-		LastName:  "Pike",
-	},
-	{
-		FirstName: "Ken",
-		LastName:  "Thompson",
-	},
-	{
-		FirstName: "Robert",
-		LastName:  "Griesemer",
-	},
-	{
-		FirstName:     "Russ",
-		MiddleInitial: "S",
-		LastName:      "Cox",
-	},
-}
-
 // Users is a package level variable acting as an in-memory user database
-var Users UserCollection
-
-func init() {
-	for _, y := range initialUsers {
-		Users.AddUser(y)
-	}
-}
+var DBUsers DBUserCollection
 
 // User represents a user of the system
-type User struct {
-	ID            int        `json:"id"`
-	FirstName     string     `json:"first_name"`
-	MiddleInitial string     `json:"middle_initial,omitempty"`
-	LastName      string     `json:"last_name"`
-	CreatedAt     *time.Time `json:"-"`
-	UpdatedAt     *time.Time `json:"-"`
+type DBUser struct {
+	ID        primitive.ObjectID `bson:"_id" json:"id,omitempty"`
+	FirstName string             `json:"first_name"`
+	LastName  string             `json:"last_name"`
 }
 
 // UserCollection is a collection of user records
-type UserCollection struct {
-	Users []User
+type DBUserCollection struct {
+	Users []DBUser
 }
 
-// AddUser will add a user if it doesn't already exist or return an error
-func (uc *UserCollection) AddUser(u User) (*User, error) {
-	nextID := len(uc.Users) + 1 // ID begins with 1
-	u.ID = nextID
+func AllUsers(collection *mongo.Collection) ([]DBUser, error) {
+
+	fmt.Println("All Users - Get")
+
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+
+	cursor, err := collection.Find(context.TODO(), bson.D{})
+
+	// Find() method raised an error
+	if err != nil {
+		log.Fatal("Finding all documents ERROR:", err)
+	} else {
+		clear(&DBUsers)
+		// iterate over docs using Next()
+
+		for cursor.Next(ctx) {
+
+			usr := DBUser{}
+			err := cursor.Decode(&usr)
+			if err != nil {
+				fmt.Println("cursor.Next() error:", err)
+				os.Exit(1)
+			}
+			DBUsers.AddUser(usr)
+
+		}
+	}
+	return DBUsers.Users, nil
+}
+
+// GetUserByID returns the user record matching privided ID
+func (uc DBUserCollection) GetUserByID(id string, collection *mongo.Collection) (*DBUser, error) {
+
+	userID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		log.Println("Invalid ObjectID")
+	}
+
+	filter := bson.D{{"_id", userID}}
+	var result DBUser
+
+	err = collection.FindOne(context.TODO(), filter).Decode(&result)
+	if err != nil {
+		log.Fatal("Error in fetching:", err)
+		return nil, fmt.Errorf("user not found")
+	}
+	return &result, nil
+
+}
+func (uc DBUserCollection) DeleteUserByID(id string, collection *mongo.Collection) (string, error) {
+
+	userID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		log.Println("Invalid ObjectID")
+	}
+
+	filter := bson.D{{"_id", userID}}
+
+	result, err1 := collection.DeleteMany(context.TODO(), filter)
+	if err1 != nil {
+		log.Fatal(err1)
+		return "Failed to delete!", err1
+	}
+	fmt.Printf("DeleteMany removed %v document(s)\n", result.DeletedCount)
+	if result.DeletedCount == 0 {
+		return "No user found", nil
+	}
+	return "Deleted success", nil
+}
+
+func (uc DBUserCollection) CreateUser(user DBUser, collection *mongo.Collection) (string, error) {
+
+	// Insert document into DB
+	user.ID = primitive.NewObjectID()
+	insertResult, err := collection.InsertOne(context.TODO(), user)
+	if err != nil {
+		log.Fatal(err)
+		return "error", fmt.Errorf("create user failed")
+	}
+
+	fmt.Println("Inserted a single document: ", insertResult.InsertedID)
+
+	return fmt.Sprintf("Insert operation success!, ID:%s", user.ID.Hex()), nil
+}
+
+func (uc *DBUserCollection) AddUser(u DBUser) (*DBUser, error) {
+	// nextID := len(uc.Users) + 1 // ID begins with 1
+	// u.ID = nextID
 	for _, y := range uc.Users {
 		if y.FirstName == u.FirstName && y.LastName == y.LastName {
 			// Not yet supporting multiple users of same name
 			return nil, fmt.Errorf("user with that name already exists")
 		}
 	}
-	u.CreatedAt = &[]time.Time{time.Now().UTC()}[0]
-	u.UpdatedAt = &[]time.Time{time.Now().UTC()}[0]
+	// u.CreatedAt = &[]time.Time{time.Now().UTC()}[0]
+	// u.UpdatedAt = &[]time.Time{time.Now().UTC()}[0]
 	uc.Users = append(uc.Users, u)
 	return &u, nil
 }
 
-// GetUserByID returns the user record matching privided ID
-func (uc UserCollection) GetUserByID(id int) (*User, error) {
-	for _, y := range uc.Users {
-		if y.ID == id {
-			return &y, nil
-		}
-	}
-	return nil, fmt.Errorf("user not found")
-}
-
-// GetUserByName will return the first user matching firstName and LastName
-// This may not work in the real world since names are not unique
-func (uc UserCollection) GetUserByName(firstName string, lastName string) (*User, error) {
-	for _, y := range uc.Users {
-		if y.FirstName == firstName && y.LastName == lastName {
-			return &y, nil
-		}
-	}
-	return nil, fmt.Errorf("user not found")
-}
-
-// GetUsers returns the slice of all users
-func (uc UserCollection) GetUsers() []User {
-	return uc.Users
-}
-
-// UpdateUser will overwrite current user record with new data
-func (uc *UserCollection) UpdateUser(u User) error {
-	for i := range uc.Users {
-		if uc.Users[i].ID == u.ID {
-			// Currently no partial updates supported since all struct fields are required
-			uc.Users[i] = u
-			uc.Users[i].UpdatedAt = &[]time.Time{time.Now().UTC()}[0]
-			return nil
-		}
-	}
-	return fmt.Errorf("update failed likely due to missing or incorrect id")
+// Clear the interface values
+func clear(v interface{}) {
+	p := reflect.ValueOf(v).Elem()
+	p.Set(reflect.Zero(p.Type()))
 }
