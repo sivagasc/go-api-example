@@ -1,4 +1,4 @@
-package models
+package common
 
 import (
 	"context"
@@ -11,15 +11,8 @@ import (
 )
 
 var Client *mongo.Client
-var UserDBCollection *mongo.Collection
 
-func init() {
-	fmt.Println("Inside init...")
-	Client = InitDB("mongodb+srv://siriusbot:siriusbot@cluster0-2rdzx.mongodb.net/sample?retryWrites=true")
-	UserDBCollection = Client.Database("sample").Collection("users")
-}
-
-func InitDB(connectionString string) *mongo.Client {
+func ConnectToDB(connectionString, databaseName, collectionName string) (*mongo.Collection, error) {
 
 	fmt.Println("Connecting to Mongo DB....")
 	Client, err := mongo.NewClient(options.Client().ApplyURI(connectionString))
@@ -35,7 +28,9 @@ func InitDB(connectionString string) *mongo.Client {
 	// defer client.Disconnect(ctx)
 
 	fmt.Println("connected to mongoDB")
-	return Client
+	collection := Client.Database(databaseName).Collection(collectionName)
+
+	return collection, nil
 }
 
 func DisconnectDB() {

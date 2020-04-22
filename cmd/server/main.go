@@ -9,11 +9,17 @@ import (
 	"os"
 	"strconv"
 
+	"example.com/m/pkg/common"
+	"go.mongodb.org/mongo-driver/mongo"
+
 	"example.com/m/pkg/auth"
 	"example.com/m/pkg/models"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/spf13/viper"
 )
+
+var UserDBCollection *mongo.Collection
 
 func hello(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "<h1>Hello, World!</h1>\n")
@@ -91,7 +97,7 @@ func get_AllUsers(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	allUsers, err := models.AllUsers(models.UserDBCollection)
+	allUsers, err := models.AllUsers(UserDBCollection)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -121,15 +127,13 @@ func get_User(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	u, err := models.DBUsers.GetUserByID(id, models.UserDBCollection)
-	fmt.Println("Here")
+	u, err := models.DBUsers.GetUserByID(id, UserDBCollection)
+
 	if err != nil {
-		fmt.Println("inside if")
 		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "User not found.")
 		return
 	}
-	fmt.Println("Not returned yet")
 	juser, err := json.Marshal(u)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -156,7 +160,7 @@ func delete_User(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	message, err := models.DBUsers.DeleteUserByID(id, models.UserDBCollection)
+	message, err := models.DBUsers.DeleteUserByID(id, UserDBCollection)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -176,7 +180,7 @@ func create_Users(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	message, err := models.DBUsers.CreateUser(user, models.UserDBCollection)
+	message, err := models.DBUsers.CreateUser(user, UserDBCollection)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -188,6 +192,42 @@ func create_Users(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+
+	// Load ENV file
+	viper.SetConfigFile(".env")
+
+	// Find and read the config file
+	err := viper.ReadInConfig()
+
+	if err != nil {
+		log.Fatalf("Error while reading config file %s", err)
+	}
+	// if we type assert to other type it will throw an error
+	dbURL, ok := viper.Get("DB_URL").(string)
+	if !ok {
+		dbURL = "" // assign dummy value
+		fmt.Println(dbURL)
+	}
+
+	// if we type assert to other type it will throw an error
+	dbName, ok := viper.Get("DATABASE_NAME").(string)
+	if !ok {
+		dbName = "" // assign dummy value
+		fmt.Println(dbName)
+	}
+
+	// if we type assert to other type it will throw an error
+	collectionName, ok := viper.Get("COLLECTION_NAME").(string)
+	if !ok {
+		collectionName = "" // assign dummy value
+		fmt.Println(collectionName)
+	}
+
+	// Connect to database
+	UserDBCollection, err = common.ConnectToDB(dbURL, dbName, collectionName)
+	if err != nil {
+		log.Fatalf("Error in connecting to database: %s", err)
+	}
 
 	// Read API key from command line flag if provided.
 	var apiKey string

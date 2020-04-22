@@ -19,8 +19,8 @@ var DBUsers DBUserCollection
 // User represents a user of the system
 type DBUser struct {
 	ID        primitive.ObjectID `bson:"_id" json:"id,omitempty"`
-	FirstName string             `json:"first_name, omitempty"`
-	LastName  string             `json:"last_name, omitempty"`
+	FirstName string             `json:"first_name"`
+	LastName  string             `json:"last_name"`
 }
 
 // UserCollection is a collection of user records
@@ -31,7 +31,6 @@ type DBUserCollection struct {
 func AllUsers(collection *mongo.Collection) ([]DBUser, error) {
 
 	fmt.Println("All Users - Get")
-	fmt.Println(reflect.TypeOf(collection))
 
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 
@@ -41,6 +40,7 @@ func AllUsers(collection *mongo.Collection) ([]DBUser, error) {
 	if err != nil {
 		log.Fatal("Finding all documents ERROR:", err)
 	} else {
+		clear(&DBUsers)
 		// iterate over docs using Next()
 
 		for cursor.Next(ctx) {
@@ -55,7 +55,6 @@ func AllUsers(collection *mongo.Collection) ([]DBUser, error) {
 
 		}
 	}
-	fmt.Println(DBUsers)
 	return DBUsers.Users, nil
 }
 
@@ -127,4 +126,10 @@ func (uc *DBUserCollection) AddUser(u DBUser) (*DBUser, error) {
 	// u.UpdatedAt = &[]time.Time{time.Now().UTC()}[0]
 	uc.Users = append(uc.Users, u)
 	return &u, nil
+}
+
+// Clear the interface values
+func clear(v interface{}) {
+	p := reflect.ValueOf(v).Elem()
+	p.Set(reflect.Zero(p.Type()))
 }
