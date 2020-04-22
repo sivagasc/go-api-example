@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -29,21 +28,21 @@ func main() {
 	dbURL, ok := viper.Get("DB_URL").(string)
 	if !ok {
 		dbURL = "" // assign dummy value
-		fmt.Println(dbURL)
+		log.Println(dbURL)
 	}
 
 	// if we type assert to other type it will throw an error
 	dbName, ok := viper.Get("DATABASE_NAME").(string)
 	if !ok {
 		dbName = "" // assign dummy value
-		fmt.Println(dbName)
+		log.Println(dbName)
 	}
 
 	// if we type assert to other type it will throw an error
 	collectionName, ok := viper.Get("COLLECTION_NAME").(string)
 	if !ok {
 		collectionName = "" // assign dummy value
-		fmt.Println(collectionName)
+		log.Println(collectionName)
 	}
 
 	// Connect to database
