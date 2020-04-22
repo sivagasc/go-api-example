@@ -8,7 +8,7 @@ import (
 // Pre-loaded users for demonstration purposes
 var initialUsers = []User{
 	{
-		FirstName: "Rob1",
+		FirstName: "Rob",
 		LastName:  "Pike",
 	},
 	{
