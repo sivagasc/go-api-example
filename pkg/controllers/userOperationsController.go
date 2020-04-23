@@ -25,18 +25,15 @@ import (
 	"net/http"
 	"os"
 
-	"example.com/m/pkg/common"
-	"example.com/m/pkg/models"
 	"github.com/gorilla/mux"
+	"github.com/sivagasc/go-api-example/pkg/common"
+	"github.com/sivagasc/go-api-example/pkg/models"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var UserDBCollection *mongo.Collection
 
 func Get_AllUsers(w http.ResponseWriter, req *http.Request) {
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 
 	allUsers, err := models.AllUsers(UserDBCollection)
 
@@ -52,6 +49,9 @@ func Get_AllUsers(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	fmt.Fprintf(os.Stdout, "%s", usersJson)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 
 	w.Write([]byte(usersJson))
 

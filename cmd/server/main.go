@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"os"
 
-	"example.com/m/pkg/auth"
-	"example.com/m/pkg/controllers"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/sivagasc/go-api-example/pkg/auth"
+	"github.com/sivagasc/go-api-example/pkg/controllers"
 	"github.com/spf13/viper"
 )
 
@@ -52,14 +52,18 @@ func main() {
 	flag.Parse()
 
 	r := mux.NewRouter()
-	r.HandleFunc("/", controllers.Hello)
-	r.HandleFunc("/api/v1/users", controllers.ListUsers)
-	r.HandleFunc("/api/v1/users/{id}", controllers.GetUser)
-	r.HandleFunc("/api/v1/dbusers", controllers.Get_AllUsers).Methods(http.MethodGet)
-	r.HandleFunc("/api/v1/dbusers", controllers.Create_Users).Methods(http.MethodPost)
 
-	r.HandleFunc("/api/v1/dbusers/{id}", controllers.Get_User).Methods(http.MethodGet)
-	r.HandleFunc("/api/v1/dbusers/{id}", controllers.Delete_User).Methods(http.MethodDelete)
+	s := r.PathPrefix("/api/v1").Subrouter()
+
+	r.HandleFunc("/", controllers.Hello)
+
+	s.HandleFunc("/users", controllers.ListUsers)
+	s.HandleFunc("/users/{id}", controllers.GetUser)
+	s.HandleFunc("/dbusers", controllers.Get_AllUsers).Methods(http.MethodGet)
+	s.HandleFunc("/dbusers", controllers.Create_Users).Methods(http.MethodPost)
+
+	s.HandleFunc("/dbusers/{id}", controllers.Get_User).Methods(http.MethodGet)
+	s.HandleFunc("/dbusers/{id}", controllers.Delete_User).Methods(http.MethodDelete)
 
 	// The simple API key security is optional.
 	// If a key is provided, we will protect all routes containing "/api/".

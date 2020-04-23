@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"example.com/m/pkg/models"
 	"github.com/gorilla/mux"
+	"github.com/sivagasc/go-api-example/pkg/models"
 )
 
 func Hello(w http.ResponseWriter, req *http.Request) {
