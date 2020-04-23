@@ -24,25 +24,23 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error while reading config file %s", err)
 	}
-	// if we type assert to other type it will throw an error
+
 	dbURL, ok := viper.Get("DB_URL").(string)
 	if !ok {
-		dbURL = "" // assign dummy value
-		log.Println(dbURL)
+		log.Fatalln("DB_URL missing in env file")
+		os.Exit(1)
 	}
 
-	// if we type assert to other type it will throw an error
 	dbName, ok := viper.Get("DATABASE_NAME").(string)
 	if !ok {
-		dbName = "" // assign dummy value
-		log.Println(dbName)
+		log.Fatalln("DATABASE_NAME missing in env file")
+		os.Exit(1)
 	}
 
-	// if we type assert to other type it will throw an error
 	collectionName, ok := viper.Get("COLLECTION_NAME").(string)
 	if !ok {
-		collectionName = "" // assign dummy value
-		log.Println(collectionName)
+		log.Fatalln("COLLECTION_NAME missing in env file")
+		os.Exit(1)
 	}
 
 	// Connect to database
