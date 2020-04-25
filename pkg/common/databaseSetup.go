@@ -12,17 +12,19 @@ import (
 
 var Client *mongo.Client
 
-func ConnectToDB(connectionString, databaseName, collectionName string) *mongo.Collection {
+func ConnectToDB(connectionString, databaseName, collectionName string) (*mongo.Collection, error) {
 
 	fmt.Println("Connecting to Mongo DB....")
 	Client, err := mongo.NewClient(options.Client().ApplyURI(connectionString))
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return nil, err
 	}
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	err = Client.Connect(ctx)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return nil, err
 	}
 
 	// defer client.Disconnect(ctx)
@@ -30,7 +32,7 @@ func ConnectToDB(connectionString, databaseName, collectionName string) *mongo.C
 	fmt.Println("connected to mongoDB")
 	collection := Client.Database(databaseName).Collection(collectionName)
 
-	return collection
+	return collection, nil
 }
 
 func DisconnectDB() {

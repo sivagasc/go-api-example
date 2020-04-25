@@ -23,116 +23,105 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/mux"
-	"github.com/sivagasc/go-api-example/pkg/common"
 	"github.com/sivagasc/go-api-example/pkg/models"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var UserDBCollection *mongo.Collection
+func Get_AllUsers(collection *mongo.Collection) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		allUsers, err := models.AllUsers(collection)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, err.Error())
+			return
+		}
 
-func Get_AllUsers(w http.ResponseWriter, req *http.Request) {
-
-	allUsers, err := models.AllUsers(UserDBCollection)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error in all Users return.")
+		usersJson, err := json.Marshal(allUsers)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.Fatal("Cannot encode to JSON ", err)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(usersJson))
 		return
-	}
-	usersJson, err := json.Marshal(allUsers)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Fatal("Cannot encode to JSON ", err)
-		return
-	}
-	fmt.Fprintf(os.Stdout, "%s", usersJson)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	w.Write([]byte(usersJson))
-
-	return
+	})
 }
 
-func Get_User(w http.ResponseWriter, req *http.Request) {
+func Get_User(collection *mongo.Collection) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		id := mux.Vars(req)["id"]
+		if id == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Expected id as an input.")
+			return
+		}
 
-	id := mux.Vars(req)["id"]
+		u, err := models.DBUsers.GetUserByID(id, collection)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprintf(w, err.Error())
+			return
+		}
 
-	if id == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Expected id as an input.")
+		juser, err := json.Marshal(u)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Something went wrong.")
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(juser)
 		return
-	}
-
-	u, err := models.DBUsers.GetUserByID(id, UserDBCollection)
-
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, "User not found.")
-		return
-	}
-	juser, err := json.Marshal(u)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Something went wrong.")
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(juser)
-	return
-
+	})
 }
 
-func Delete_User(w http.ResponseWriter, req *http.Request) {
+func Delete_User(collection *mongo.Collection) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		id := mux.Vars(req)["id"]
+		if id == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Expected id as an input.")
+			return
+		}
 
-	id := mux.Vars(req)["id"]
+		message, err := models.DBUsers.DeleteUserByID(id, collection)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Error: "+err.Error())
+			return
+		}
 
-	if id == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Expected id as an input.")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"message":"` + message + `"}`))
 		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	message, err := models.DBUsers.DeleteUserByID(id, UserDBCollection)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Something went wrong in user deletion.")
-		return
-	}
-
-	w.Write([]byte(`{"message":"` + message + `"}`))
-	return
+	})
 }
 
-func Create_Users(w http.ResponseWriter, req *http.Request) {
-	var user models.DBUser
-	err := json.NewDecoder(req.Body).Decode(&user)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+func Create_Users(collection *mongo.Collection) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		var user models.DBUser
 
-	message, err := models.DBUsers.CreateUser(user, UserDBCollection)
+		err := json.NewDecoder(req.Body).Decode(&user)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Something went wrong in user deletion.")
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"message":"` + message + `"}`))
-}
+		message, err := models.DBUsers.CreateUser(user, collection)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, err.Error())
+			return
+		}
 
-func Connect_database(dbURL, dbName, collectionName string) {
-	UserDBCollection = common.ConnectToDB(dbURL, dbName, collectionName)
-	fmt.Printf("DB Connection established")
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"message":"` + message + `"}`))
+	})
 }

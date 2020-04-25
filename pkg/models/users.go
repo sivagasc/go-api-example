@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"reflect"
 	"time"
 
@@ -38,7 +37,8 @@ func AllUsers(collection *mongo.Collection) ([]DBUser, error) {
 
 	// Find() method raised an error
 	if err != nil {
-		log.Fatal("Finding all documents ERROR:", err)
+		log.Println("Finding all documents ERROR:", err)
+		return nil, err
 	} else {
 		clear(&DBUsers)
 		// iterate over docs using Next()
@@ -49,7 +49,7 @@ func AllUsers(collection *mongo.Collection) ([]DBUser, error) {
 			err := cursor.Decode(&usr)
 			if err != nil {
 				fmt.Println("cursor.Next() error:", err)
-				os.Exit(1)
+				return nil, err
 			}
 			DBUsers.AddUser(usr)
 
@@ -64,6 +64,7 @@ func (uc DBUserCollection) GetUserByID(id string, collection *mongo.Collection) 
 	userID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		log.Println("Invalid ObjectID")
+		return nil, fmt.Errorf("Invalid Object ID")
 	}
 
 	filter := bson.D{{"_id", userID}}
@@ -71,7 +72,7 @@ func (uc DBUserCollection) GetUserByID(id string, collection *mongo.Collection) 
 
 	err = collection.FindOne(context.TODO(), filter).Decode(&result)
 	if err != nil {
-		log.Fatal("Error in fetching:", err)
+		log.Println("Error in fetching:", err)
 		return nil, fmt.Errorf("user not found")
 	}
 	return &result, nil
@@ -82,42 +83,45 @@ func (uc DBUserCollection) DeleteUserByID(id string, collection *mongo.Collectio
 	userID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		log.Println("Invalid ObjectID")
+		return "", fmt.Errorf("Invalid Object ID")
 	}
 
 	filter := bson.D{{"_id", userID}}
 
 	result, err1 := collection.DeleteMany(context.TODO(), filter)
 	if err1 != nil {
-		log.Fatal(err1)
-		return "Failed to delete!", err1
+		log.Println(err1)
+		return "", fmt.Errorf("Failed to delete: %s", err1)
 	}
+
 	fmt.Printf("DeleteMany removed %v document(s)\n", result.DeletedCount)
 	if result.DeletedCount == 0 {
-		return "No user found", nil
+		return "", fmt.Errorf("No user found")
 	}
-	return "Deleted success", nil
+	return "User Details Deleted successfully", nil
 }
 
 func (uc DBUserCollection) CreateUser(user DBUser, collection *mongo.Collection) (string, error) {
 
 	// Insert document into DB
 	user.ID = primitive.NewObjectID()
+
 	insertResult, err := collection.InsertOne(context.TODO(), user)
 	if err != nil {
-		log.Fatal(err)
-		return "error", fmt.Errorf("create user failed")
+		log.Println(err)
+		return "", fmt.Errorf("Error in user creation:%s", err)
 	}
 
-	fmt.Println("Inserted a single document: ", insertResult.InsertedID)
+	fmt.Println("Created a new User, user ID: ", insertResult.InsertedID)
 
-	return fmt.Sprintf("Insert operation success!, ID:%s", user.ID.Hex()), nil
+	return fmt.Sprintf("Created a new User, user ID::%s", user.ID.Hex()), nil
 }
 
 func (uc *DBUserCollection) AddUser(u DBUser) (*DBUser, error) {
 	// nextID := len(uc.Users) + 1 // ID begins with 1
 	// u.ID = nextID
 	for _, y := range uc.Users {
-		if y.FirstName == u.FirstName && y.LastName == y.LastName {
+		if y.FirstName == u.FirstName && y.LastName == u.LastName {
 			// Not yet supporting multiple users of same name
 			return nil, fmt.Errorf("user with that name already exists")
 		}
