@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/sivagasc/go-api-example/pkg/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,6 +21,8 @@ type User struct {
 	ID        primitive.ObjectID `bson:"_id" json:"id,omitempty"`
 	FirstName string             `json:"first_name"`
 	LastName  string             `json:"last_name"`
+	UserName  string             `json:"username"`
+	Password  string             `json:"password"`
 }
 
 // UserCollection is a collection of user records
@@ -80,6 +83,21 @@ func (uc UserCollection) GetUserByID(id string, collection *mongo.Collection, lo
 
 }
 
+//GetUserByUserName returns the user record matching privided ID
+func GetUserByUserName(username string, collection *mongo.Collection, logger *zerolog.Logger) (*User, error) {
+
+	filter := bson.D{{"username", username}}
+	var result User
+
+	err := collection.FindOne(context.TODO(), filter).Decode(&result)
+	if err != nil {
+		logger.Info().Msgf("Error in fetching: %s", err.Error())
+		return nil, fmt.Errorf("user not found")
+	}
+	return &result, nil
+
+}
+
 // DeleteUserByID is a public method to remove tge user record matching privided ID
 func (uc UserCollection) DeleteUserByID(id string, collection *mongo.Collection, logger *zerolog.Logger) (string, error) {
 
@@ -109,7 +127,13 @@ func (uc UserCollection) CreateUser(user *User, collection *mongo.Collection, lo
 
 	// Insert document into DB
 	user.ID = primitive.NewObjectID()
-
+	// Encrypt the password
+	encryptPsw, err := utils.EncryptPassword(user.Password)
+	if err != nil {
+		logger.Error().Msg(err.Error())
+		return nil, err
+	}
+	user.Password = encryptPsw
 	insertResult, err := collection.InsertOne(context.TODO(), user)
 	if err != nil {
 		logger.Error().Msg(err.Error())

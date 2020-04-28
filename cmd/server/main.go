@@ -112,6 +112,12 @@ func main() {
 	s.Handle("/users/{id}", chandler.GetUser(srvcEnv, usersService)).Methods(http.MethodGet)
 	s.Handle("/users/{id}", chandler.DeleteUser(srvcEnv, usersService)).Methods(http.MethodDelete)
 
+	// Authentication
+	a := r.PathPrefix(API_PATH_PREFIX + "/auth").Subrouter()
+	a.Handle("/login", chandler.TokenAuth(srvcEnv, usersService)).Methods(http.MethodGet)
+	a.Handle("/refresh-token", chandler.RefreshToken(srvcEnv)).Methods(http.MethodGet)
+	a.Handle("/logout", chandler.Logout(srvcEnv)).Methods(http.MethodGet)
+
 	// The simple API key security is optional.
 	// If a key is provided, we will protect all routes containing "/api/".
 	logger.Debug().Msg("API Key:" + apiKey)

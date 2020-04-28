@@ -4,7 +4,11 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/rs/zerolog"
+	"github.com/sivagasc/go-api-example/pkg/models"
+	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -54,4 +58,18 @@ func (akm *APIKeyMiddleware) Middleware(next http.Handler) http.Handler {
 		// Just pass the request to the next middleware (or final handler)
 		next.ServeHTTP(w, r)
 	})
+}
+
+//Login method authenticate the user and provide JWT token
+func Login(requestUser *models.UserAuthentication, collection *mongo.Collection, logger *zerolog.Logger) (int, string, time.Time) {
+	userAuth := InitJWTAuthentication()
+	if userAuth.Authenticate(requestUser, collection, logger) {
+		token, expirationTime, err := userAuth.GenerateToken(requestUser.Username)
+		if err != nil {
+			logger.Error().Msgf("Error:%s", err)
+			return http.StatusInternalServerError, "Internal Server Error", time.Now()
+		}
+		return http.StatusOK, token, expirationTime
+	}
+	return http.StatusUnauthorized, "Unauthorized", time.Now()
 }
