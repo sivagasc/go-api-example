@@ -1,4 +1,4 @@
-FROM golang:1.13
+FROM golang:1.13 as mybuildstage
 
 RUN mkdir /go-example
 
@@ -12,6 +12,15 @@ COPY . /go-example/
 
 RUN make build
 
-ENTRYPOINT  /go-example/bin/server
+# ENTRYPOINT  /go-example/bin/server
+
+# EXPOSE 8090
+
+FROM ubuntu
+
+COPY --from=mybuildstage /go-example/bin/server .
+COPY --from=mybuildstage /go-example/.env .
+
+CMD [ "./server" ]
 
 EXPOSE 8090
