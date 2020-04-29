@@ -125,7 +125,7 @@ func CreateUsers(env *services.Env, usersSvc users.Service) http.Handler {
 
 		err := json.NewDecoder(req.Body).Decode(&user)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 			return
 		}
 

@@ -17,7 +17,6 @@ func TokenAuth(env *services.Env, usersSvc users.Service) http.Handler {
 		requestUser := new(models.UserAuthentication)
 		decoder := json.NewDecoder(req.Body)
 		decoder.Decode(&requestUser)
-		fmt.Println(requestUser)
 		responseStatus, token, expirationTime := auth.Login(requestUser, env.Collection, env.Log)
 		w.WriteHeader(responseStatus)
 
