@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -31,10 +32,11 @@ func (akm *APIKeyMiddleware) InitializeKey(key string) {
 // KeyIsValid checks that userAPIKey matches userAPIKey hash
 func (akm *APIKeyMiddleware) KeyIsValid(userAPIKey string) bool {
 	log.Println("userkeystring:", userAPIKey)
-	if e := bcrypt.CompareHashAndPassword(akm.apiKey, []byte(userAPIKey)); e != nil {
-		log.Println("Key Mismatch")
-		return false
-	}
+	// if e := bcrypt.CompareHashAndPassword(akm.apiKey, []byte(userAPIKey)); e != nil {
+	// 	log.Println("Key Mismatch")
+	// 	return false
+	// }
+
 	return true
 }
 
@@ -42,16 +44,24 @@ func (akm *APIKeyMiddleware) KeyIsValid(userAPIKey string) bool {
 func (akm *APIKeyMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if akm.Path == "" || strings.Contains(r.URL.Path, akm.Path) {
+			// cLogger := common.GetLoggerInstance()
+			// cLogger.Info().Msg("Authorization Sample Message")
 			log.Printf("Authorization required for %s", r.URL.Path)
 			key := r.Header.Get("Authorization")
-			if akm.KeyIsValid(key) {
+			fmt.Println("key:" + key)
+			userAuth := InitJWTAuthentication()
+			var httpCode int
+			var flag bool
+
+			if httpCode, flag = userAuth.ValidateToken(key); flag { //akm.KeyIsValid(key)
 				log.Printf("User is authorized.")
 				// Pass down the request to the next middleware (or final handler)
 				next.ServeHTTP(w, r)
 				return
 			}
 			// Write an error and return to stop the handler chain
-			http.Error(w, "Forbidden", http.StatusForbidden)
+			//http.Error(w, "Forbidden", http.StatusForbidden)
+			w.WriteHeader(httpCode)
 			return
 		}
 		// Auth not required for non-api endpoints

@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/sivagasc/go-api-example/pkg/common"
+
 	"github.com/rs/zerolog"
 	"github.com/sivagasc/go-api-example/pkg/utils"
 	"go.mongodb.org/mongo-driver/bson"
@@ -37,7 +39,14 @@ func (uc UserCollection) AllUsers(collection *mongo.Collection, logger *zerolog.
 
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 
-	cursor, err := collection.Find(context.TODO(), bson.D{})
+	//Get DB connection from common package
+	col, err := common.GetDBConnection()
+	if err != nil {
+		logger.Error().Msgf("Error in getting DB connection ERROR: %s", err.Error())
+		return nil, err
+	}
+
+	cursor, err := col.Find(context.TODO(), bson.D{})
 
 	// Find() method raised an error
 	if err != nil {

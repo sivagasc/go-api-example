@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 	"github.com/sivagasc/go-api-example/pkg/models"
 	"github.com/sivagasc/go-api-example/pkg/services"
@@ -18,12 +20,40 @@ func Hello(e *services.Env) http.Handler {
 		fmt.Fprintf(w, "<h1>Hello, World!</h1>\n")
 	})
 }
+func validateToken(tokenString string) {
+	// Token from another example.  This token is expired
+	// var tokenString = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmb28iOiJiYXIiLCJleHAiOjE1MDAwLCJpc3MiOiJ0ZXN0In0.HE7fK0xOQwFEr4WDgRWj4teRPZ6i3GLwD5YCm6Pwu_c"
+	tokenString = strings.Replace(tokenString, "Bearer ", "", -1)
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte("AllYourBase"), nil
+	})
+
+	if token.Valid {
+		fmt.Println("You look nice today")
+	} else if ve, ok := err.(*jwt.ValidationError); ok {
+		if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+			fmt.Println("That's not even a token")
+		} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+			// Token is either expired or not active yet
+			fmt.Println("Timing is everything")
+		} else {
+			fmt.Println("Couldn't handle this token:", err)
+		}
+	} else {
+		fmt.Println("Couldn't handle this token:", err)
+	}
+
+	// Output: Timing is everything
+}
 
 // GetAllUsers method used to retrieve all the user details from the database
 func GetAllUsers(env *services.Env, usersSvc users.Service) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		env.Log.Info().Msg("*** Get All Users")
-		ctx := context.WithValue(req.Context(), services.AcceptTypeKey, req.Header.Get("Accept"))
+
+		//Set authorization key in context
+		ctx := context.WithValue(req.Context(), services.AuthorizationKey, req.Header.Get("Authorization"))
+
 		payload := &users.ListPayload{}
 
 		allUsers, err := usersSvc.List(ctx, payload)
