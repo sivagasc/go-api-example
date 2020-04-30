@@ -17,33 +17,33 @@ var Client *mongo.Client
 var Collection *mongo.Collection
 
 //ConnectToDB Method connect to MongoDB
-func ConnectToDB(connectionString, databaseName, collectionName string) (*mongo.Collection, error) {
+func ConnectToDB(connectionString, databaseName, collectionName string) error {
 
-	fmt.Println("Connecting to Mongo DB....")
+	logger.Info().Msg("Connecting to Mongo DB....")
 	var err error
 	Client, err = mongo.NewClient(options.Client().ApplyURI(connectionString))
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return err
 	}
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	err = Client.Connect(ctx)
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return err
 	}
 
 	// defer client.Disconnect(ctx)
 
-	fmt.Println("connected to mongoDB")
+	logger.Info().Msg("connected to mongoDB")
 	Collection = Client.Database(databaseName).Collection(collectionName)
 
-	return Collection, nil
+	return nil
 }
 
 //GetDBConnection Get the Database connection
 func GetDBConnection() (*mongo.Collection, error) {
-
+	logger.Debug().Msg("Get DB Connection..")
 	// Check the connection
 	err := Client.Ping(context.TODO(), nil)
 
@@ -55,6 +55,7 @@ func GetDBConnection() (*mongo.Collection, error) {
 
 //DisconnectDB to disconnect the DB connection
 func DisconnectDB() {
+	logger.Debug().Msg("Disconnect DB Connection..")
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	defer Client.Disconnect(ctx)
 	fmt.Println("DB disconnected!")

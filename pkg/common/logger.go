@@ -11,16 +11,19 @@ var logger *zerolog.Logger
 var once sync.Once
 
 // GetLoggerInstance ...
-func GetLoggerInstance(filename string) *zerolog.Logger {
-	once.Do(func() {
-		// viper.SetConfigFile(EnvFile)
+func GetLoggerInstance() *zerolog.Logger {
+	return logger
+}
 
-		logger = createLogger(filename)
+// SetupLoggerInstance ...
+func SetupLoggerInstance(filename, env string) *zerolog.Logger {
+	once.Do(func() {
+		logger = createLogger(filename, env)
 	})
 	return logger
 }
 
-func createLogger(fname string) *zerolog.Logger {
+func createLogger(fname string, env string) *zerolog.Logger {
 
 	file, _ := os.OpenFile(fname, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
 
@@ -30,16 +33,14 @@ func createLogger(fname string) *zerolog.Logger {
 	multi := zerolog.MultiLevelWriter(consoleWriter, file)
 	logger := zerolog.New(multi).With().Timestamp().Logger()
 
-	// if env == ProductionEnv {
-	// 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	// 	logger.Info().Msg("*** Production Configuration ***")
-	// } else {
-	// 	zl := logger.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	// 	logger = &zl
-	// 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	// 	logger.Info().Msg("*** Non-production Configuration ***")
-	// 	logger.Debug().Msg("*** Debug Logging Enabled ***")
-	// }
+	if env == "Production" {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		logger.Info().Msg("*** Production Configuration ***")
+	} else {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		logger.Info().Msg("*** Non-production Configuration ***")
+		logger.Debug().Msg("*** Debug Logging Enabled ***")
+	}
 
 	return &logger
 }

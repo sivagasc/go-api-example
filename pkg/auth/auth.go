@@ -1,16 +1,12 @@
 package auth
 
 import (
-	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/rs/zerolog"
+	"github.com/sivagasc/go-api-example/pkg/common"
 	"github.com/sivagasc/go-api-example/pkg/models"
-	"go.mongodb.org/mongo-driver/mongo"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // APIKeyMiddleware is a simplified shared secret authentication for api requests
@@ -19,42 +15,43 @@ type APIKeyMiddleware struct {
 	Path   string
 }
 
-// InitializeKey will load a hash that could be safely persisted instead of the actual key
-func (akm *APIKeyMiddleware) InitializeKey(key string) {
-	k := []byte(key)
-	bCryptKey, err := bcrypt.GenerateFromPassword(k, bcrypt.DefaultCost)
-	if err != nil {
-		log.Fatal("Key initialization error.")
-	}
-	akm.apiKey = bCryptKey
-}
+// // InitializeKey will load a hash that could be safely persisted instead of the actual key
+// func (akm *APIKeyMiddleware) InitializeKey(key string) {
+// 	k := []byte(key)
+// 	bCryptKey, err := bcrypt.GenerateFromPassword(k, bcrypt.DefaultCost)
+// 	if err != nil {
+// 		log.Fatal("Key initialization error.")
+// 	}
+// 	akm.apiKey = bCryptKey
+// }
 
 // KeyIsValid checks that userAPIKey matches userAPIKey hash
-func (akm *APIKeyMiddleware) KeyIsValid(userAPIKey string) bool {
-	log.Println("userkeystring:", userAPIKey)
-	// if e := bcrypt.CompareHashAndPassword(akm.apiKey, []byte(userAPIKey)); e != nil {
-	// 	log.Println("Key Mismatch")
-	// 	return false
-	// }
+// func (akm *APIKeyMiddleware) KeyIsValid(userAPIKey string) bool {
+// 	log.Println("userkeystring:", userAPIKey)
+// 	// if e := bcrypt.CompareHashAndPassword(akm.apiKey, []byte(userAPIKey)); e != nil {
+// 	// 	log.Println("Key Mismatch")
+// 	// 	return false
+// 	// }
 
-	return true
-}
+// 	return true
+// }
 
 // Middleware function, which will be called for each api request
 func (akm *APIKeyMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if akm.Path == "" || strings.Contains(r.URL.Path, akm.Path) {
-			// cLogger := common.GetLoggerInstance()
-			// cLogger.Info().Msg("Authorization Sample Message")
-			log.Printf("Authorization required for %s", r.URL.Path)
+			// Get Logger
+			logger := common.GetLoggerInstance()
+
+			logger.Info().Msgf("Authorization required for %s", r.URL.Path)
 			key := r.Header.Get("Authorization")
-			fmt.Println("key:" + key)
+
 			userAuth := InitJWTAuthentication()
 			var httpCode int
 			var flag bool
 
 			if httpCode, flag = userAuth.ValidateToken(key); flag { //akm.KeyIsValid(key)
-				log.Printf("User is authorized.")
+				logger.Info().Msg("User is authorized.")
 				// Pass down the request to the next middleware (or final handler)
 				next.ServeHTTP(w, r)
 				return
@@ -71,9 +68,12 @@ func (akm *APIKeyMiddleware) Middleware(next http.Handler) http.Handler {
 }
 
 //Login method authenticate the user and provide JWT token
-func Login(requestUser *models.UserAuthentication, collection *mongo.Collection, logger *zerolog.Logger) (int, string, time.Time) {
+func Login(requestUser *models.UserAuthentication) (int, string, time.Time) {
+	// Get Logger
+	logger := common.GetLoggerInstance()
+
 	userAuth := InitJWTAuthentication()
-	if userAuth.Authenticate(requestUser, collection, logger) {
+	if userAuth.Authenticate(requestUser) {
 		token, expirationTime, err := userAuth.GenerateToken(requestUser.Username)
 		if err != nil {
 			logger.Error().Msgf("Error:%s", err)

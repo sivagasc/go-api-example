@@ -8,11 +8,9 @@ import (
 
 	"github.com/sivagasc/go-api-example/pkg/common"
 
-	"github.com/rs/zerolog"
 	"github.com/sivagasc/go-api-example/pkg/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // Users is a package level variable acting as an in-memory user database
@@ -33,20 +31,21 @@ type UserCollection struct {
 }
 
 // AllUsers is a public method to return all the user details from the database
-func (uc UserCollection) AllUsers(collection *mongo.Collection, logger *zerolog.Logger) (*UserCollection, error) {
+func (uc UserCollection) AllUsers() (*UserCollection, error) {
+
+	// Get Logger
+	logger := common.GetLoggerInstance()
+	// Get DB Connection
+	collection, err := common.GetDBConnection()
+	if err != nil {
+		return nil, fmt.Errorf("Error in getting DB instance")
+	}
 
 	logger.Info().Msg("All Users - Get")
 
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 
-	//Get DB connection from common package
-	col, err := common.GetDBConnection()
-	if err != nil {
-		logger.Error().Msgf("Error in getting DB connection ERROR: %s", err.Error())
-		return nil, err
-	}
-
-	cursor, err := col.Find(context.TODO(), bson.D{})
+	cursor, err := collection.Find(context.TODO(), bson.D{})
 
 	// Find() method raised an error
 	if err != nil {
@@ -72,7 +71,15 @@ func (uc UserCollection) AllUsers(collection *mongo.Collection, logger *zerolog.
 }
 
 // GetUserByID returns the user record matching privided ID
-func (uc UserCollection) GetUserByID(id string, collection *mongo.Collection, logger *zerolog.Logger) (*User, error) {
+func (uc UserCollection) GetUserByID(id string) (*User, error) {
+
+	// Get Logger
+	logger := common.GetLoggerInstance()
+	// Get DB Connection
+	collection, err := common.GetDBConnection()
+	if err != nil {
+		return nil, fmt.Errorf("Error in getting DB instance")
+	}
 
 	userID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -93,12 +100,20 @@ func (uc UserCollection) GetUserByID(id string, collection *mongo.Collection, lo
 }
 
 //GetUserByUserName returns the user record matching privided ID
-func GetUserByUserName(username string, collection *mongo.Collection, logger *zerolog.Logger) (*User, error) {
+func GetUserByUserName(username string) (*User, error) {
+
+	// Get Logger
+	logger := common.GetLoggerInstance()
+	// Get DB Connection
+	collection, err := common.GetDBConnection()
+	if err != nil {
+		return nil, fmt.Errorf("Error in getting DB instance")
+	}
 
 	filter := bson.D{{"username", username}}
 	var result User
 
-	err := collection.FindOne(context.TODO(), filter).Decode(&result)
+	err = collection.FindOne(context.TODO(), filter).Decode(&result)
 	if err != nil {
 		logger.Info().Msgf("Error in fetching: %s", err.Error())
 		return nil, fmt.Errorf("user not found")
@@ -108,7 +123,14 @@ func GetUserByUserName(username string, collection *mongo.Collection, logger *ze
 }
 
 // DeleteUserByID is a public method to remove tge user record matching privided ID
-func (uc UserCollection) DeleteUserByID(id string, collection *mongo.Collection, logger *zerolog.Logger) (string, error) {
+func (uc UserCollection) DeleteUserByID(id string) (string, error) {
+	// Get Logger
+	logger := common.GetLoggerInstance()
+	// Get DB Connection
+	collection, err := common.GetDBConnection()
+	if err != nil {
+		return "", fmt.Errorf("Error in getting DB instance")
+	}
 
 	userID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -132,7 +154,14 @@ func (uc UserCollection) DeleteUserByID(id string, collection *mongo.Collection,
 }
 
 // CreateUser is a public method to create new user in the database
-func (uc UserCollection) CreateUser(user *User, collection *mongo.Collection, logger *zerolog.Logger) (*User, error) {
+func (uc UserCollection) CreateUser(user *User) (*User, error) {
+	// Get Logger
+	logger := common.GetLoggerInstance()
+	// Get DB Connection
+	collection, err := common.GetDBConnection()
+	if err != nil {
+		return nil, fmt.Errorf("Error in getting DB instance")
+	}
 
 	// Insert document into DB
 	user.ID = primitive.NewObjectID()

@@ -21,15 +21,12 @@ package users
 import (
 	"context"
 
-	"github.com/rs/zerolog"
-	"go.mongodb.org/mongo-driver/mongo"
-
 	"github.com/sivagasc/go-api-example/pkg/models"
 )
 
 type usersSvc struct {
-	collection *mongo.Collection
-	logger     *zerolog.Logger
+	// collection *mongo.Collection
+	// logger     *zerolog.Logger
 }
 
 // Service ...
@@ -42,13 +39,13 @@ type Service interface {
 }
 
 // NewUsersSvc ...
-func NewUsersSvc(collection *mongo.Collection, logger *zerolog.Logger) (Service, error) {
-	return &usersSvc{collection, logger}, nil
+func NewUsersSvc() (Service, error) {
+	return &usersSvc{}, nil
 }
 
 func (us *usersSvc) Show(_ context.Context, payload *ShowPayload) (*models.User, error) {
 
-	u, err := models.Users.GetUserByID(payload.ID, us.collection, us.logger)
+	u, err := models.Users.GetUserByID(payload.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +55,7 @@ func (us *usersSvc) Show(_ context.Context, payload *ShowPayload) (*models.User,
 
 func (us *usersSvc) Delete(_ context.Context, payload *DeletePayload) (string, error) {
 
-	message, err := models.Users.DeleteUserByID(payload.ID, us.collection, us.logger)
+	message, err := models.Users.DeleteUserByID(payload.ID)
 	if err != nil {
 		return "Error on delete", err
 	}
@@ -71,7 +68,7 @@ func (us *usersSvc) Update(_ context.Context, _ *UpdatePayload) (string, error) 
 }
 
 func (us *usersSvc) List(_ context.Context, _ *ListPayload) (*models.UserCollection, error) {
-	allUsers, err := models.Users.AllUsers(us.collection, us.logger)
+	allUsers, err := models.Users.AllUsers()
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +77,7 @@ func (us *usersSvc) List(_ context.Context, _ *ListPayload) (*models.UserCollect
 
 func (us *usersSvc) Create(_ context.Context, user *models.User) (*models.User, error) {
 
-	userCollection, err := models.Users.CreateUser(user, us.collection, us.logger)
+	userCollection, err := models.Users.CreateUser(user)
 	if err != nil {
 		return nil, err
 	}

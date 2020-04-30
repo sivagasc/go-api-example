@@ -11,9 +11,8 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/rs/zerolog"
+	"github.com/sivagasc/go-api-example/pkg/common"
 	"github.com/sivagasc/go-api-example/pkg/models"
-	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -79,14 +78,17 @@ func (backend *JWTAuthentication) GenerateToken(username string) (string, time.T
 }
 
 //Authenticate method used to authenticate the users
-func (backend *JWTAuthentication) Authenticate(user *models.UserAuthentication, collection *mongo.Collection, logger *zerolog.Logger) bool {
+func (backend *JWTAuthentication) Authenticate(user *models.UserAuthentication) bool {
 	// hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("testing"), 10)
 	// testUser := models.UserAuthentication{
 	// 	Username: "test",
 	// 	Password: string(hashedPassword),
 	// }
 
-	dbuser, err := models.GetUserByUserName(user.Username, collection, logger)
+	// Get Logger
+	logger := common.GetLoggerInstance()
+
+	dbuser, err := models.GetUserByUserName(user.Username)
 	if err != nil {
 		logger.Error().Msgf("Error on validating username:%s", err.Error())
 		return false

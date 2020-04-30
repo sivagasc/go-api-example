@@ -11,28 +11,21 @@ import (
 	"github.com/sivagasc/go-api-example/pkg/common"
 	"github.com/sivagasc/go-api-example/pkg/config"
 	chandler "github.com/sivagasc/go-api-example/pkg/handlers"
-	"github.com/sivagasc/go-api-example/pkg/services"
 	"github.com/sivagasc/go-api-example/pkg/services/users"
 
-	// lr "github.com/sivagasc/go-api-example/pkg/util/logger"
 	"github.com/spf13/viper"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
+//Common const
 const (
 	EnvFile        string = "env"
 	DatabaseURL    string = "DB_URL"
 	DatabaseName   string = "DATABASE_NAME"
 	CollectionName string = "COLLECTION_NAME"
-	Environment    string = "ENVIRONMENT"
 	APIKey         string = "apikey"
 	APIKeyDoc      string = "API key"
 	APIPathPrefix  string = "/api/v1"
-	DevelopmentEnv string = "Development"
-	ProductionEnv  string = "Production"
 )
-
-var collection *mongo.Collection
 
 func getEnvData(filename string) (config.Configurations, error) {
 
@@ -62,16 +55,18 @@ func main() {
 	if err != nil {
 		logger.Fatal().Msg("Error in reading Env file")
 	}
-	logger.Info().Msg("value:" + envConfig.Database.DBName)
 
-	var dbURL, dbName, collectionName, env string
+	var dbURL, dbName, collectionName, env, logOutput string
 
 	if env = envConfig.Server.Environment; env == "" {
 		logger.Fatal().Msg("Env missing in env file")
 	}
+	if logOutput = envConfig.Logger.OutputPath; logOutput == "" {
+		logger.Fatal().Msg("Env missing in env file")
+	}
 
 	// Load Custom Logger
-	logger = common.GetLoggerInstance(envConfig.Logger.OutputPath)
+	logger = common.SetupLoggerInstance(logOutput, env)
 
 	if dbURL = envConfig.Database.URL; dbURL == "" {
 		logger.Fatal().Msg("DB_URL missing in env file")
@@ -86,34 +81,29 @@ func main() {
 	}
 
 	// Connect to database
-	collection, err = common.ConnectToDB(dbURL, dbName, collectionName)
+	err = common.ConnectToDB(dbURL, dbName, collectionName)
 	if err != nil {
 		logger.Fatal().Msg("Error in DB Connection")
 	}
 
-	srvcEnv := &services.Env{
-		Collection: collection, // Shared database connection goes here
-		Log:        logger,
-	}
-
 	// Service interface
-	usersService, err := users.NewUsersSvc(collection, logger)
+	usersService, err := users.NewUsersSvc()
 
 	r := mux.NewRouter()
 	s := r.PathPrefix(APIPathPrefix).Subrouter()
-	r.Handle("/", chandler.Hello(srvcEnv))
+	r.Handle("/", chandler.Hello())
 
 	// request with mongoDB CRUD operation
-	s.Handle("/users", chandler.GetAllUsers(srvcEnv, usersService)).Methods(http.MethodGet)
-	s.Handle("/users", chandler.CreateUsers(srvcEnv, usersService)).Methods(http.MethodPost)
-	s.Handle("/users/{id}", chandler.GetUser(srvcEnv, usersService)).Methods(http.MethodGet)
-	s.Handle("/users/{id}", chandler.DeleteUser(srvcEnv, usersService)).Methods(http.MethodDelete)
+	s.Handle("/users", chandler.GetAllUsers(usersService)).Methods(http.MethodGet)
+	s.Handle("/users", chandler.CreateUsers(usersService)).Methods(http.MethodPost)
+	s.Handle("/users/{id}", chandler.GetUser(usersService)).Methods(http.MethodGet)
+	s.Handle("/users/{id}", chandler.DeleteUser(usersService)).Methods(http.MethodDelete)
 
 	// Authentication
 	a := r.PathPrefix(APIPathPrefix + "/auth").Subrouter()
-	a.Handle("/login", chandler.TokenAuth(srvcEnv, usersService)).Methods(http.MethodGet)
-	a.Handle("/refresh-token", chandler.RefreshToken(srvcEnv)).Methods(http.MethodGet)
-	a.Handle("/logout", chandler.Logout(srvcEnv)).Methods(http.MethodGet)
+	a.Handle("/login", chandler.TokenAuth(usersService)).Methods(http.MethodGet)
+	a.Handle("/refresh-token", chandler.RefreshToken()).Methods(http.MethodGet)
+	a.Handle("/logout", chandler.Logout()).Methods(http.MethodGet)
 
 	// Add middleware authentication check
 	akm := auth.APIKeyMiddleware{Path: "/api/v1/users"}
