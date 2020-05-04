@@ -103,7 +103,7 @@ func DeleteUser(usersSvc users.Service) http.Handler {
 			return
 		}
 
-		utils.RespondJSON(w, http.StatusOK, message)
+		utils.RespondJSON(w, http.StatusOK, map[string]string{"status": message})
 		return
 	})
 }
