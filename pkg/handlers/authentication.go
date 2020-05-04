@@ -8,6 +8,7 @@ import (
 	"github.com/sivagasc/go-api-example/pkg/auth"
 	"github.com/sivagasc/go-api-example/pkg/models"
 	"github.com/sivagasc/go-api-example/pkg/services/users"
+	"github.com/sivagasc/go-api-example/pkg/utils"
 )
 
 // TokenAuth is a JWT Authentication method
@@ -17,7 +18,6 @@ func TokenAuth(usersSvc users.Service) http.Handler {
 		decoder := json.NewDecoder(req.Body)
 		decoder.Decode(&requestUser)
 		responseStatus, token, expirationTime := auth.Login(requestUser)
-		w.WriteHeader(responseStatus)
 
 		// Setting token and expiration time in cookie
 		http.SetCookie(w, &http.Cookie{
@@ -27,12 +27,12 @@ func TokenAuth(usersSvc users.Service) http.Handler {
 		})
 
 		if responseStatus == http.StatusOK {
-			w.Header().Set("Content-Type", "application/json")
 			response := map[string]string{"status": "success", "token": token}
-			resJSON, _ := json.Marshal(response)
-			w.Write([]byte(resJSON))
+			utils.RespondJSON(w, responseStatus, response)
+			return
 		}
 
+		utils.RespondJSON(w, responseStatus, "")
 		return
 	})
 }

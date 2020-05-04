@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/sivagasc/go-api-example/pkg/utils"
+
 	"github.com/gorilla/mux"
 	"github.com/sivagasc/go-api-example/pkg/common"
 	"github.com/sivagasc/go-api-example/pkg/models"
@@ -36,20 +38,12 @@ func GetAllUsers(usersSvc users.Service) http.Handler {
 		allUsers, err := usersSvc.List(ctx, payload)
 
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, err.Error())
+			utils.RespondError(w, http.StatusInternalServerError, fmt.Sprintf("Error in User GET: %s", err))
+			logger.Error().Msgf("Error in User retrieval: %s", err)
 			return
 		}
 
-		usersJSON, err := json.Marshal(allUsers.Users)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			logger.Error().Msgf("Cannot encode to JSON, Error: %s", err)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(usersJSON))
+		utils.RespondJSON(w, http.StatusOK, allUsers.Users)
 		return
 	})
 }
@@ -63,8 +57,8 @@ func GetUser(usersSvc users.Service) http.Handler {
 
 		id := mux.Vars(req)["id"]
 		if id == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			logger.Warn().Msg("Expected id as an input.")
+			utils.RespondError(w, http.StatusBadRequest, "Expected id as an input.")
+			logger.Error().Msg("Expected id as an input.")
 			return
 		}
 
@@ -73,20 +67,12 @@ func GetUser(usersSvc users.Service) http.Handler {
 		}
 		u, err := usersSvc.Show(ctx, payload)
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			fmt.Fprintf(w, err.Error())
+			utils.RespondError(w, http.StatusInternalServerError, fmt.Sprintf("Error in User GET: %s", err))
+			logger.Error().Msgf("Error in User retrieval: %s", err)
 			return
 		}
 
-		juser, err := json.Marshal(u)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "Something went wrong.")
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(juser)
+		utils.RespondJSON(w, http.StatusOK, u)
 		return
 	})
 }
@@ -101,8 +87,8 @@ func DeleteUser(usersSvc users.Service) http.Handler {
 
 		id := mux.Vars(req)["id"]
 		if id == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "Expected id as an input.")
+			utils.RespondError(w, http.StatusBadRequest, "Expected id as an input.")
+			logger.Error().Msg("Expected id as an input.")
 			return
 		}
 		payload := &users.DeletePayload{
@@ -112,15 +98,12 @@ func DeleteUser(usersSvc users.Service) http.Handler {
 
 		// message, err := models.Users.DeleteUserByID(id, env.Collection)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			logger.Error().Msg("Error in User delete")
-			fmt.Fprintf(w, "Error: "+err.Error())
+			utils.RespondError(w, http.StatusInternalServerError, fmt.Sprintf("Error in User delete: %s", err))
+			logger.Error().Msgf("Error in User delete: %s", err)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"message":"` + message + `"}`))
+		utils.RespondJSON(w, http.StatusOK, message)
 		return
 	})
 }
@@ -131,6 +114,8 @@ func DeleteUser(usersSvc users.Service) http.Handler {
 func CreateUsers(usersSvc users.Service) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.WithValue(req.Context(), services.AcceptTypeKey, req.Header.Get("Accept"))
+		// Get Logger
+		logger := common.GetLoggerInstance()
 
 		var user *models.User
 
@@ -142,20 +127,12 @@ func CreateUsers(usersSvc users.Service) http.Handler {
 
 		user, err = usersSvc.Create(ctx, user)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, err.Error())
+			utils.RespondError(w, http.StatusInternalServerError, fmt.Sprintf("Error in User Create: %s", err))
+			logger.Error().Msgf("Error in User create: %s", err)
 			return
 		}
 
-		juser, err := json.Marshal(user)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "Something went wrong.")
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(juser)
+		utils.RespondJSON(w, http.StatusOK, user)
+		return
 	})
 }

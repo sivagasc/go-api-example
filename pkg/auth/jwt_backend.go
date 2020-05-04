@@ -26,7 +26,7 @@ type JWTAuthentication struct {
 // var jwtKey = []byte("my_secret_key")
 
 const (
-	tokenDurationInMinute = 5
+	tokenDurationInMinute = 15
 	expireOffset          = 3600
 )
 

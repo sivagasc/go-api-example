@@ -33,7 +33,7 @@ func ConnectToDB(connectionString, databaseName, collectionName string) error {
 		return err
 	}
 
-	// defer client.Disconnect(ctx)
+	// defer client.Disconnect(ctx) //TODO: Need to close this connection
 
 	logger.Info().Msg("connected to mongoDB")
 	Collection = Client.Database(databaseName).Collection(collectionName)

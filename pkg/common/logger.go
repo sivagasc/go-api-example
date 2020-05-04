@@ -25,9 +25,9 @@ func SetupLoggerInstance(filename, env string) *zerolog.Logger {
 
 func createLogger(fname string, env string) *zerolog.Logger {
 
-	file, _ := os.OpenFile(fname, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0777)
+	file, _ := os.OpenFile(fname, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
 
-	// defer file.Close() // TODO: Check it
+	// defer file.Close() // TODO: Need to close this file
 
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout}
 	multi := zerolog.MultiLevelWriter(consoleWriter, file)
