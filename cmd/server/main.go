@@ -105,6 +105,11 @@ func main() {
 	a.Handle("/refresh-token", chandler.RefreshToken()).Methods(http.MethodGet)
 	a.Handle("/logout", chandler.Logout()).Methods(http.MethodGet)
 
+	//FHIR HL7
+
+	f := r.PathPrefix(APIPathPrefix + "/fhir").Subrouter()
+	f.Handle("/get-patient/{id}", chandler.GetPatient()).Methods(http.MethodGet)
+
 	// Add middleware authentication check
 	akm := auth.APIKeyMiddleware{Path: "/api/v1/users"}
 	r.Use(akm.Middleware)
