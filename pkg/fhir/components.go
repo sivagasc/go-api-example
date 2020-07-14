@@ -4,12 +4,13 @@ import "time"
 
 // SearchResult is a search result
 type SearchResult struct {
-	ResourceType string  `json:"resourceType"`
-	Type         string  `json:"type"`
-	Total        int     `json:"total"`
-	Link         []Link  `json:"link"`
-	ID           string  `json:"id"`
-	Issues       []Issue `json:"issue"`
+	ResourceType string         `json:"resourceType"`
+	Type         string         `json:"type"`
+	Total        int            `json:"total"`
+	Link         []Link         `json:"link"`
+	ID           string         `json:"id"`
+	Issues       []Issue        `json:"issue"`
+	EntryPartial []EntryPartial `json:"entry"`
 }
 
 // Issue is a FHIR issue
@@ -22,9 +23,10 @@ type Issue struct {
 
 // EntryPartial are the common entry fields
 type EntryPartial struct {
-	FullURL string     `json:"fullUrl"`
-	Link    []Link     `json:"link"`
-	Search  SearchMode `json:"search"`
+	FullURL  string           `json:"fullUrl"`
+	Link     []Link           `json:"link"`
+	Search   SearchMode       `json:"search"`
+	Resource ResourcePartial2 `json:"resource"`
 }
 
 // ResourcePartial are the common resource fields
@@ -38,6 +40,12 @@ type ResourcePartial struct {
 	Patient           Person    `json:"patient"`
 	Performer         Person    `json:"performer"`
 	Recorder          Person    `json:"recorder"`
+}
+
+// ResourcePartial2 for Search
+type ResourcePartial2 struct {
+	Name   []Name `json:"name"`
+	Gender string `json:"gender"`
 }
 
 // SearchMode is a FHIR search mode

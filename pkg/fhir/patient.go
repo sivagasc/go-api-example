@@ -18,6 +18,19 @@ func (c *Connection) GetPatient(pid string) (*Patient, error) {
 	return &data, nil
 }
 
+// GetPatients will return patient information for a patient with id pid
+func (c *Connection) GetPatients(count string) (*SearchResult, error) {
+	b, err := c.Query(fmt.Sprintf("Patient?_count=%v&_format=json", count))
+	if err != nil {
+		return nil, err
+	}
+	data := SearchResult{}
+	if err := json.Unmarshal(b, &data); err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
 // Patient is a FHIR patient
 type Patient struct {
 	ResourceType    string          `json:"resourceType"`
